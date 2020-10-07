@@ -25,6 +25,7 @@ from scipy.special import softmax
 from sklearn.metrics import confusion_matrix
 import pickle
 
+# I will add this comment to get hacktobefest
 
 
 TITLE = "Word Reconigtion"
@@ -48,7 +49,7 @@ def clustering(X, n_clusters=10):
     kmeans = KMeans(n_clusters=n_clusters, n_init=50, random_state=0, verbose=0)
     kmeans.fit(X)
     print("centers", kmeans.cluster_centers_.shape)
-    return kmeans  
+    return kmeans
 
 def get_mfcc(file_path):
     y, sr = librosa.load(file_path) # read .wav file
@@ -59,7 +60,7 @@ def get_mfcc(file_path):
         y, sr, n_mfcc=12, n_fft=1024,
         hop_length=hop_length, win_length=win_length)
     # substract mean from mfcc --> normalize mfcc
-    mfcc = mfcc - np.mean(mfcc, axis=1).reshape((-1,1)) 
+    mfcc = mfcc - np.mean(mfcc, axis=1).reshape((-1,1))
     # delta feature 1st order and 2nd order
     delta1 = librosa.feature.delta(mfcc, order=1)
     delta2 = librosa.feature.delta(mfcc, order=2)
@@ -80,33 +81,33 @@ def train(data_train,state_num):
         startprob = np.zeros(n)
         startprob[0] = 1
         transmat=np.diag(np.full(n,1))
-        
-        
+
+
         hmm = hmmlearn.hmm.MultinomialHMM(
             n_components=n, random_state=0, n_iter=1000, verbose=False,
             startprob_prior=startprob,
             transmat_prior=transmat,
         )
-        
+
         X = np.concatenate(dataset[cname])
         lengths = list([len(x) for x in dataset[cname]])
         hmm.fit(X, lengths=lengths)
-        models[cname] = hmm    
+        models[cname] = hmm
     return models
 
 def get_result(data_test,models):
     result = {}
     dataset = data_test.copy()
     for true_cname in data_test.keys():
-        true = 0 
+        true = 0
         for O in dataset[true_cname]:
-    
+
             score = {cname : model.score(O, [len(O)]) for cname, model in models.items()}
-            
+
             label = max(score.keys(),key=lambda x:score[x])
             if label == true_cname:
                 true += 1
-        result[true_cname] = true/len(dataset[true_cname])  
+        result[true_cname] = true/len(dataset[true_cname])
         print(true,len(dataset[true_cname]))
     return result
 
@@ -122,7 +123,7 @@ def predict(X_test,models):
 
 def predict_pro(X_test,models):
     y_pro = []
-    
+
     for x in X_test:
         score = {}
         for cname in models.keys():
@@ -144,12 +145,12 @@ class Model:
         self.data_train = self.convert_data_train()
         self.models_state = models_state
         self.ensemble = create_emsemble(self.models_state,self.data_train)
-        
+
     def get_kmeans(self):
         all_vectors = np.concatenate([np.concatenate(v, axis=0) for k, v in self.dataset_train.items()], axis=0)
         kmeans = clustering(all_vectors,self.k)
         return kmeans
-    
+
     def convert_data_train(self):
         X_train = []
         y_train = []
@@ -166,7 +167,7 @@ class Model:
     def predict(self,X_test):
         X_test = [self.kmeans.predict(v).reshape(-1,1) for v in X_test]
         res = emsemble_predict(self.ensemble,X_test)
-        
+
         voting_result = np.zeros(np.array(res['model1']['y_predict_pro']).shape)
         for k in res.keys():
             voting_result += np.array(res[k]['y_predict_pro'])
@@ -180,7 +181,7 @@ def create_emsemble(models_state,data_train):
             "người":s[3],
             "cáchly":s[4]
                 }
-        
+
         model = train(data_train,state_num)
         model_emsemble.append(model)
     return model_emsemble
@@ -192,8 +193,8 @@ def emsemble_predict(model_ensemble,X_test):
         count += 1
         result[f'model{count}'] = {'y_predict':predict(X_test,m),
                                   'y_predict_pro':predict_pro(X_test,m)}
-    
-    return result 
+
+    return result
 
 class Recorder:
     def __init__(self):
@@ -293,7 +294,7 @@ class Recorder:
         m = pickle.load(file)
         file.close()
         full_result,result= m.predict(mfcc)
-        
+
         y_predict = [pro_to_label(y_pro) for y_pro in result][0]
         self.status.config(text=f"This is \"{y_predict}\"")
 
